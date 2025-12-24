@@ -1,6 +1,6 @@
 # Document Embedding Indexer
 
-A Python tool that extracts text from PDF and DOCX files, splits it into chunks using various strategies, generates embeddings using Google Gemini API, and stores them in PostgreSQL with pgvector for efficient vector similarity search.
+A Python tool that extracts text from PDF and DOCX files, splits it into chunks using various strategies, generates embeddings using Google Vertex AI, and stores them in PostgreSQL with pgvector for efficient vector similarity search.
 
 ## Features
 
@@ -9,7 +9,7 @@ A Python tool that extracts text from PDF and DOCX files, splits it into chunks 
   - Fixed-size with overlap
   - Sentence-based splitting
   - Paragraph-based splitting
-- **Embeddings**: Google Gemini API integration for generating high-quality embeddings
+- **Embeddings**: Google Vertex AI integration for generating high-quality embeddings
 - **Vector Storage**: PostgreSQL with pgvector extension for efficient vector search
 - **CLI Interface**: Simple command-line interface for easy usage
 
@@ -17,7 +17,7 @@ A Python tool that extracts text from PDF and DOCX files, splits it into chunks 
 
 - Python 3.8+
 - PostgreSQL 12+
-- Google Gemini API key
+- Google Cloud Project with Vertex AI enabled
 
 ## Installation
 
@@ -78,6 +78,15 @@ CREATE DATABASE document_vectors;
 # Clone the repository (or navigate to the project directory)
 cd doc-embedding-indexer
 
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate the virtual environment
+# On macOS/Linux:
+source venv/bin/activate
+# On Windows:
+# venv\Scripts\activate
+
 # Install required packages
 pip install -r requirements.txt
 ```
@@ -95,18 +104,24 @@ cp .env.example .env
 Edit `.env` and add your credentials:
 
 ```env
-# Google Gemini API Key
-GEMINI_API_KEY=your_actual_gemini_api_key_here
+# Google Cloud Project ID
+GOOGLE_CLOUD_PROJECT=your-project-id
+
+# Google Cloud Location (default: us-central1)
+GOOGLE_CLOUD_LOCATION=us-central1
 
 # PostgreSQL Connection URL
 POSTGRES_URL=postgresql://username:password@localhost:5432/document_vectors
 ```
 
-**Getting a Gemini API Key:**
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy the key to your `.env` file
+**Setting up Google Cloud Vertex AI:**
+1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
+2. Enable the Vertex AI API for your project
+3. Set up authentication using Application Default Credentials (ADC):
+   ```bash
+   gcloud auth application-default login
+   ```
+4. Add your project ID to the `.env` file
 
 ### 2. Initialize Database Schema
 
@@ -219,9 +234,10 @@ CREATE TABLE document_chunks (
 
 ## Troubleshooting
 
-### "GEMINI_API_KEY not found in environment variables"
+### "GOOGLE_CLOUD_PROJECT not found in environment variables"
 - Ensure `.env` file exists in the project directory
-- Verify the API key is set correctly in `.env`
+- Verify the project ID is set correctly in `.env`
+- Make sure you've set up Google Cloud authentication with `gcloud auth application-default login`
 
 ### "POSTGRES_URL not found in environment variables"
 - Check that `.env` contains the correct PostgreSQL connection string
