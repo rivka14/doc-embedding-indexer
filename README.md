@@ -258,11 +258,11 @@ CREATE TABLE document_chunks (
 
 ```
 doc-embedding-indexer/
-├── index_documents.py   # Main script with all functionality
-├── requirements.txt     # Python dependencies
-├── schema.sql          # Database schema
-├── .env.example        # Environment variables template
-├── .gitignore          # Git ignore rules
-└── README.md           # This file
+├── index_documents.py   
+├── requirements.txt     
+├── schema.sql          
+├── .env.example       
+├── .gitignore         
+└── README.md          
 ```
 
