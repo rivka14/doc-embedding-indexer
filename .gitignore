@@ -33,3 +33,6 @@ Thumbs.db
 # Test files
 test_*.pdf
 test_*.docx
+
+# Log files
+*.log
