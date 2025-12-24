@@ -258,13 +258,30 @@ CREATE TABLE document_chunks (
 
 ```
 doc-embedding-indexer/
-├── index_documents.py   
-├── config.py            
-├── requirements.txt     
-├── schema.sql         
-├── .env.example         
+├── index_documents.py
+├── config.py
+├── requirements.txt
+├── schema.sql
+├── .env.example
 ├── .gitignore
 └── README.md
 ```
+
+## Future Enhancements
+
+This project implements the **document indexing** component. Natural next steps:
+
+**RAG Pipeline Completion**
+- Query/retrieval system: semantic search endpoint to find relevant chunks
+- Answer generation: integrate LLM (Vertex AI/OpenAI) to generate answers from retrieved context
+- Evaluation metrics: measure retrieval quality and answer accuracy
+
+**API & Interface**
+- REST API for indexing and search operations
+- Web UI for document management and search
+
+**Additional Features**
+- Support for more file types (.txt)
+- Incremental updates (re-index only changed files)
 
 
