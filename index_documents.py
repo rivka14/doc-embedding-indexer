@@ -4,12 +4,15 @@ import sys
 import argparse
 import logging
 from pathlib import Path
+from typing import List
 import fitz
 from docx import Document
 from dotenv import load_dotenv
 from google import genai
 import psycopg2
 from psycopg2.extras import execute_values
+
+import config
 
 load_dotenv()
 
@@ -24,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def extract_text_from_pdf(file_path):
+def extract_text_from_pdf(file_path: str) -> str:
     logger.info(f"Extracting text from PDF: {file_path}")
     text = ""
     with fitz.open(file_path) as pdf:
@@ -35,7 +38,7 @@ def extract_text_from_pdf(file_path):
     return text.strip()
 
 
-def extract_text_from_docx(file_path):
+def extract_text_from_docx(file_path: str) -> str:
     logger.info(f"Extracting text from DOCX: {file_path}")
     doc = Document(file_path)
     text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
@@ -43,7 +46,7 @@ def extract_text_from_docx(file_path):
     return text.strip()
 
 
-def extract_text(file_path):
+def extract_text(file_path: str) -> str:
     file_ext = Path(file_path).suffix.lower()
 
     if file_ext == ".pdf":
@@ -54,7 +57,14 @@ def extract_text(file_path):
         raise ValueError(f"Unsupported file type: {file_ext}. Only PDF and DOCX are supported.")
 
 
-def chunk_fixed_size(text, chunk_size=500, overlap=50):
+def chunk_fixed_size(text: str, chunk_size: int = config.DEFAULT_CHUNK_SIZE, overlap: int = config.DEFAULT_CHUNK_OVERLAP) -> List[str]:
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    if overlap < 0:
+        raise ValueError("overlap must be non-negative")
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be less than chunk_size")
+
     chunks = []
     start = 0
 
@@ -70,17 +80,17 @@ def chunk_fixed_size(text, chunk_size=500, overlap=50):
     return chunks
 
 
-def chunk_by_sentences(text):
-    sentences = re.split(r'(?<=[.!?])\s+', text)
+def chunk_by_sentences(text: str) -> List[str]:
+    sentences = re.split(config.SENTENCE_SPLIT_PATTERN, text)
     return [s.strip() for s in sentences if s.strip()]
 
 
-def chunk_by_paragraphs(text):
-    paragraphs = re.split(r'\n\s*\n', text)
+def chunk_by_paragraphs(text: str) -> List[str]:
+    paragraphs = re.split(config.PARAGRAPH_SPLIT_PATTERN, text)
     return [p.strip() for p in paragraphs if p.strip()]
 
 
-def chunk_text(text, strategy="fixed"):
+def chunk_text(text: str, strategy: str = "fixed") -> List[str]:
     logger.info(f"Chunking text using '{strategy}' strategy")
     if strategy == "fixed":
         chunks = chunk_fixed_size(text)
@@ -94,10 +104,10 @@ def chunk_text(text, strategy="fixed"):
     return chunks
 
 
-def generate_embeddings(chunks):
+def generate_embeddings(chunks: List[str]) -> List[List[float]]:
     logger.info(f"Generating embeddings for {len(chunks)} chunks")
     project = os.getenv("GOOGLE_CLOUD_PROJECT")
-    location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+    location = os.getenv("GOOGLE_CLOUD_LOCATION", config.DEFAULT_LOCATION)
 
     if not project:
         raise ValueError("GOOGLE_CLOUD_PROJECT not found in environment variables")
@@ -109,7 +119,7 @@ def generate_embeddings(chunks):
     for i, chunk in enumerate(chunks, 1):
         logger.debug(f"Generating embedding {i}/{len(chunks)}")
         result = client.models.embed_content(
-            model="text-embedding-004",
+            model=config.EMBEDDING_MODEL,
             contents=[chunk]
         )
         embeddings.append(result.embeddings[0].values)
@@ -118,7 +128,7 @@ def generate_embeddings(chunks):
     return embeddings
 
 
-def get_db_connection():
+def get_db_connection() -> psycopg2.extensions.connection:
     logger.debug("Establishing PostgreSQL connection")
     postgres_url = os.getenv("POSTGRES_URL")
     if not postgres_url:
@@ -129,32 +139,30 @@ def get_db_connection():
     return conn
 
 
-def store_chunks(chunks, embeddings, filename, strategy):
+def store_chunks(chunks: List[str], embeddings: List[List[float]], filename: str, strategy: str) -> None:
     logger.info(f"Storing {len(chunks)} chunks in database for file: {filename}")
-    conn = get_db_connection()
-    cursor = conn.cursor()
 
-    data = [
-        (chunk, embedding, filename, strategy)
-        for chunk, embedding in zip(chunks, embeddings)
-    ]
+    with get_db_connection() as conn:
+        with conn.cursor() as cursor:
+            data = [
+                (chunk, embedding, filename, strategy)
+                for chunk, embedding in zip(chunks, embeddings)
+            ]
 
-    query = """
-        INSERT INTO document_chunks (chunk_text, embedding, filename, split_strategy)
-        VALUES %s
-    """
+            query = """
+                INSERT INTO document_chunks (chunk_text, embedding, filename, split_strategy)
+                VALUES %s
+            """
 
-    logger.debug(f"Executing batch insert for {len(data)} records")
-    execute_values(cursor, query, data, template="(%s, %s::vector, %s, %s)")
+            logger.debug(f"Executing batch insert for {len(data)} records")
+            execute_values(cursor, query, data, template="(%s, %s::vector, %s, %s)")
+            conn.commit()
 
-    conn.commit()
     logger.info(f"Successfully stored {len(chunks)} chunks in database")
-    cursor.close()
-    conn.close()
     logger.debug("Database connection closed")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Index documents by creating embeddings and storing them in PostgreSQL"
     )
@@ -176,14 +184,12 @@ def main():
 
         if not os.path.exists(args.file_path):
             logger.error(f"File not found: {args.file_path}")
-            print(f"Error: File not found: {args.file_path}")
             sys.exit(1)
 
         text = extract_text(args.file_path)
 
         if not text:
             logger.error("No text extracted from the file")
-            print("Error: No text extracted from the file")
             sys.exit(1)
 
         chunks = chunk_text(text, strategy=args.strategy)
@@ -197,11 +203,9 @@ def main():
 
     except ValueError as e:
         logger.error(f"ValueError: {e}")
-        print(f"Error: {e}")
         sys.exit(1)
     except Exception as e:
         logger.exception(f"Unexpected error during processing: {e}")
-        print(f"Unexpected error: {e}")
         sys.exit(1)
 
 

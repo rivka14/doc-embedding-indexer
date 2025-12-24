@@ -10,5 +10,9 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_filename ON document_chunks(filename);
-   
+
 CREATE INDEX IF NOT EXISTS idx_split_strategy ON document_chunks(split_strategy);
+
+-- IVFFlat index for vector similarity search (lists=100 optimized for ~10k rows)
+CREATE INDEX IF NOT EXISTS idx_embedding_cosine ON document_chunks
+USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
