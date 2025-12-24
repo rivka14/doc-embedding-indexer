@@ -258,7 +258,7 @@ CREATE TABLE document_chunks (
 
 ```
 doc-embedding-indexer/
-├── index_documents.py   i 
+├── index_documents.py   
 ├── config.py            
 ├── requirements.txt     
 ├── schema.sql         
