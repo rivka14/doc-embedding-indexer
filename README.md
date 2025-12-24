@@ -181,11 +181,14 @@ optional arguments:
 ## Example Workflow
 
 ```bash
+# Activate virtual environment first
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
 # 1. Process a PDF with sentence-based chunking
-python index_documents.py reports/annual_report.pdf -s sentence
+python index_documents.py your_file.pdf -s sentence
 
 # Output:
-# Processing file: reports/annual_report.pdf
+# Processing file: your_file.pdf
 # Extracting text...
 # Text extracted successfully (15234 characters)
 # Chunking text using 'sentence' strategy...
@@ -193,10 +196,10 @@ python index_documents.py reports/annual_report.pdf -s sentence
 # Generating embeddings...
 # Generated 87 embeddings
 # Storing in database...
-# Successfully indexed 87 chunks from annual_report.pdf
+# Successfully indexed 87 chunks from your_file.pdf
 
 # 2. Process a DOCX with paragraph-based chunking
-python index_documents.py notes/meeting_notes.docx -s paragraph
+python index_documents.py your_file.docx -s paragraph
 
 # 3. Check database
 psql -d document_vectors -c "SELECT filename, split_strategy, COUNT(*) FROM document_chunks GROUP BY filename, split_strategy;"
