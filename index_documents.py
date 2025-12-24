@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 def extract_text_from_pdf(file_path):
-    """Extract text from PDF file using PyMuPDF."""
     logger.info(f"Extracting text from PDF: {file_path}")
     text = ""
     with fitz.open(file_path) as pdf:
@@ -37,7 +36,6 @@ def extract_text_from_pdf(file_path):
 
 
 def extract_text_from_docx(file_path):
-    """Extract text from DOCX file."""
     logger.info(f"Extracting text from DOCX: {file_path}")
     doc = Document(file_path)
     text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
@@ -46,7 +44,6 @@ def extract_text_from_docx(file_path):
 
 
 def extract_text(file_path):
-    """Auto-detect file type and extract text."""
     file_ext = Path(file_path).suffix.lower()
 
     if file_ext == ".pdf":
@@ -58,7 +55,6 @@ def extract_text(file_path):
 
 
 def chunk_fixed_size(text, chunk_size=500, overlap=50):
-    """Split text into fixed-size chunks with overlap."""
     chunks = []
     start = 0
 
@@ -75,19 +71,16 @@ def chunk_fixed_size(text, chunk_size=500, overlap=50):
 
 
 def chunk_by_sentences(text):
-    """Split text by sentences using regex."""
     sentences = re.split(r'(?<=[.!?])\s+', text)
     return [s.strip() for s in sentences if s.strip()]
 
 
 def chunk_by_paragraphs(text):
-    """Split text by paragraphs (double newlines)."""
     paragraphs = re.split(r'\n\s*\n', text)
     return [p.strip() for p in paragraphs if p.strip()]
 
 
 def chunk_text(text, strategy="fixed"):
-    """Chunk text using the specified strategy."""
     logger.info(f"Chunking text using '{strategy}' strategy")
     if strategy == "fixed":
         chunks = chunk_fixed_size(text)
@@ -102,7 +95,6 @@ def chunk_text(text, strategy="fixed"):
 
 
 def generate_embeddings(chunks):
-    """Generate embeddings for chunks using Google Vertex AI."""
     logger.info(f"Generating embeddings for {len(chunks)} chunks")
     project = os.getenv("GOOGLE_CLOUD_PROJECT")
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
@@ -127,7 +119,6 @@ def generate_embeddings(chunks):
 
 
 def get_db_connection():
-    """Create and return a PostgreSQL database connection."""
     logger.debug("Establishing PostgreSQL connection")
     postgres_url = os.getenv("POSTGRES_URL")
     if not postgres_url:
@@ -139,7 +130,6 @@ def get_db_connection():
 
 
 def store_chunks(chunks, embeddings, filename, strategy):
-    """Store chunks and embeddings in PostgreSQL database."""
     logger.info(f"Storing {len(chunks)} chunks in database for file: {filename}")
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -165,7 +155,6 @@ def store_chunks(chunks, embeddings, filename, strategy):
 
 
 def main():
-    """Main CLI function to process documents."""
     parser = argparse.ArgumentParser(
         description="Index documents by creating embeddings and storing them in PostgreSQL"
     )
